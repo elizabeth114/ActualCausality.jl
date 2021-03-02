@@ -133,7 +133,6 @@ aexpr3 = au"""(program
 
 restrictedvalues = Dict(:(state.suzieHistory) => [0, 1, 2, 3, 4, 5, 6])
 
-
 # ------------------------------Change to function------------------------------
 macro test_ac(expected_true, aexpr_,  cause_a_, cause_b_)
     if expected_true
@@ -200,7 +199,7 @@ end
 a = :(state.suzieHistory[step] == 1)
 b = :(state.brokenHistory[step] == true)
 @test_ac(true, aexpr, a, b)
-#
+
 a = :(state.suzieHistory[0] == 1)
 b = :(state.brokenHistory[5] == true)
 @test_ac(true, aexpr, a, b)

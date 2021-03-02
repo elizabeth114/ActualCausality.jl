@@ -681,5 +681,52 @@ function ballcollision(ball1, ball2)
   return ball2.direction
 end
 
+function equalPos(val1, val2)
+  try
+    return eval(val1).x == eval(val2).x && eval(val1).y == eval(val2).y
+  catch e
+    return false
+  end
+  false
+end
+
+function acaused(cause_a::Expr, cause_b::Expr)
+  if eval(cause_a) || equalPos(cause_a.args[2], cause_a.args[3])
+    varstore = eval(cause_a.args[2])
+    short = eval(reduce(cause_a.args[2]))
+    index = getstep(cause_a.args[2])
+    for val in possiblevalues(cause_a.args[2], cause_a.args[3])
+      if isfield(cause_a.args[2])
+        eval(Expr(:(=), cause_a.args[2], val))
+      else
+        push!(reduce(cause_a.args[2]), step =>val)
+      end
+      if !(eval(cause_b))
+        if isfield(cause_a.args[2])
+          eval(Expr(:(=), cause_a.args[2], varstore))
+        else
+          push!(reduce(cause_a.args[2]), step =>varstore)
+        end
+        return true
+        break
+      end
+    end
+    if isfield(cause_a.args[2])
+      eval(Expr(:(=), cause_a.args[2], varstore))
+    else
+      push!(reduce(cause_a.args[2]), step =>varstore)
+    end
+  end
+  false
+end
+
+function tryb(cause_b)
+  try
+    return eval(cause_b)
+  catch e
+    return false
+  end
+end
+
 end
 end

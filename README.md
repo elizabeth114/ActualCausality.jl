@@ -6,3 +6,5 @@ To answer this question the program traces event_a to all of the events that ste
 An event is considered to stem from the previous event based on a counterfactual definition. event_x stems from event_y if there is some value for the variable in event_y that makes event_x not occur.
 
 This definition is different from the general counterfactual definition since it is looking at each smaller step instead of the problem as a whole.
+
+[Click here for more info about the program functionality](https://www.notion.so/Overview-of-Program-9beaa4ffb23042cfbd8903c2f228aff3)

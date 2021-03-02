@@ -8,3 +8,5 @@ An event is considered to stem from the previous event based on a counterfactual
 This definition is different from the general counterfactual definition since it is looking at each smaller step instead of the problem as a whole.
 
 [Click here for more info about the program functionality](https://www.notion.so/Overview-of-Program-9beaa4ffb23042cfbd8903c2f228aff3)
+
+[Click here for more info about the step based counterfactual](https://www.notion.so/Approaches-for-a_causes-function-6e5e4e60d1ae405d8797474599c47182)

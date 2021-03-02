@@ -10,3 +10,5 @@ This definition is different from the general counterfactual definition since it
 [Click here for more info about the program functionality](program.md)
 
 [Click here for more info about the step based counterfactual](acauses.md)
+
+[Click here for more info on how to run the program](runningac.md)

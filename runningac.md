@@ -13,7 +13,7 @@ using Distributions: Categorical
 eval(builtin)
 ```
 
-Define the macro (issues with this explained at the bottom) 
+Define the macro (issues with this explained at the bottom)
 
 ```jsx
 macro test_ac(expected_true, aexpr_,  cause_a_, cause_b_)
@@ -78,7 +78,7 @@ macro test_ac(expected_true, aexpr_,  cause_a_, cause_b_)
 end
 ```
 
-Define your aexpr (example below) 
+Define your aexpr (example below)
 
 ```jsx
 aexpr = au"""(program
@@ -103,26 +103,26 @@ aexpr = au"""(program
   )"""
 ```
 
-Define cause_a and cause_b (example below) 
+Define cause_a and cause_b (example below)
 
 ```jsx
 a = :(state.suzieHistory[step] == 1)
 b = :(state.brokenHistory[step] == true)
 ```
 
-Set up your test with the expected outcome (true if you believe a caused b else false) (example below) 
+Set up your test with the expected outcome (true if you believe a caused b else false) (example below)
 
 ```jsx
 @test_ac(true, aexpr, a, b)
 ```
 
-If your hypothesis was correct the test will pass. 
+If your hypothesis was correct the test will pass.
 
-## Why isn't this a function?
+## Why isn't this test_ac a function?
 
-I am working on creating a function that can just be run but when attempting to transform the macro I ran into the following errors. 
+I am working on creating a function that can just be run but when attempting to transform the macro I ran into the following errors.
 
-When attempting to define `test_ac` as a macro in another file: 
+When attempting to define `test_ac` as a macro in another file:
 
 It complains aexpr not defined
 

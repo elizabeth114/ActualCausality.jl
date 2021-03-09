@@ -6,7 +6,7 @@ using MLStyle: @match
 
 import MacroTools: striplines
 
-export compilecausal, tryb, equalpos, acaused
+export compilecausal, equalpos, acaused
 
 function tostate(var)
   return Meta.parse("state.$(var)History[step]")

@@ -586,16 +586,16 @@ function possvalspos(val)
   vals = []
   for x in 0:16
     for y in 0:16
-      push!(vals, typeof(val)(x, y))
+      push!(vals, Base.invokelatest(typeof(val), x, y))
     end
   end
   vals
 end
 
 function possiblevalues(var::Expr, val)
-  if reducenoeval(var) in keys(restrictedvalues)
-    return restrictedvalues[reducenoeval(var)]
-  end
+  # if reducenoeval(var) in keys(restrictedvalues)
+  #   return restrictedvalues[reducenoeval(var)]
+  # end
   if :x in (fieldnames(typeof(val))) && :y in (fieldnames(typeof(val)))
     return possvalspos(val)
   end

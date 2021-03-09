@@ -5,8 +5,6 @@ using MLStyle
 import Base.Cartesian.lreplace
 using Distributions: Categorical
 
-eval(builtin)
-
 aexpr = au"""(program
   (= GRID_SIZE 16)
 
@@ -130,133 +128,72 @@ aexpr3 = au"""(program
            )))
   (on (intersects (prev bottleSpot) (prev suzieRock)) (= broken true))
 )"""
-
-restrictedvalues = Dict(:(state.suzieHistory) => [0, 1, 2, 3, 4, 5, 6])
-
 # ------------------------------Change to function------------------------------
-macro test_ac(expected_true, aexpr_,  cause_a_, cause_b_)
-    if expected_true
-      cause = Meta.parse("@test true")
-      not_cause = Meta.parse("@test false")
-    else
-      cause = Meta.parse("@test false")
-      not_cause = Meta.parse("@test true")
-    end
-    global step = 0
-    return quote
-      global step = 0
-      get_a_causes = getcausal($aexpr_)
 
-      eval(get_a_causes)
-      aumod = eval(compiletojulia($aexpr_))
-      state = aumod.init(nothing, nothing, nothing, nothing, nothing, MersenneTwister(0))
-      causes = [$cause_a_]
-      cause_b = $cause_b_
-
-      while !tryb(cause_b) && length(causes) > 0
-        new_causes = []
-        for cause_a in causes
-          try
-            if eval(cause_a)
-              result = a_causes(cause_a)
-              append!(new_causes, result)
-            else
-              if getstep(cause_a) > step - 1
-                append!(new_causes, [cause_a])
-              end
-            end
-          catch e
-            append!(new_causes, [cause_a])
-          end
-        end
-        global causes = new_causes
-        global state = aumod.next(state, nothing, nothing, nothing, nothing, nothing)
-        global step = step + 1
-      end
-    for cause_a in causes
-      if acaused(cause_a, cause_b)
-        println("A did cause B")
-        println("a path")
-        println(cause_a)
-        println("b path")
-        println(cause_b)
-        println("---------------------------------------------")
-        $cause
-        return
-      end
-    end
-    println("A did not cause B")
-    println("causes")
-    println(causes)
-    println("cause b")
-    println(cause_b)
-    println("---------------------------------------------")
-    $not_cause
-  end
-end
 # ------------------------------Suzie Test---------------------------------------
 # cause((suzie == 1), (broken == true))
+
 a = :(state.suzieHistory[step] == 1)
 b = :(state.brokenHistory[step] == true)
-@test_ac(true, aexpr, a, b)
+@test(test_ac(aexpr, a, b))
 
 a = :(state.suzieHistory[0] == 1)
 b = :(state.brokenHistory[5] == true)
-@test_ac(true, aexpr, a, b)
+@test(test_ac(aexpr, a, b))
 
 a = :(state.suzieHistory[2] == 1)
 b = :(state.brokenHistory[step] == true)
-@test_ac(false, aexpr, a, b)
+@test(!test_ac(aexpr, a, b))
 #
 # # -------------------------------Billy Test---------------------------------------
 # cause((billy == 0), (broken == true))
 a = :(state.billyHistory[step] == 0)
 b = :(state.brokenHistory[step] == true)
-@test_ac(false, aexpr, a, b)
+@test(!test_ac(aexpr, a, b))
 
 # cause((billy == 0), (broken == true))
 a = :(state.billyHistory[0] == 1)
 b = :(state.brokenHistory[step] == true)
-@test_ac(false, aexpr, a, b)
+@test(!test_ac(aexpr, a, b))
 
 # cause((billy == 0), (broken == true))
 a = :(state.billyHistory[1] == 1)
 b = :(state.brokenHistory[step] == true)
-@test_ac(false, aexpr, a, b)
+@test(!test_ac(aexpr, a, b))
 
 # # ------------------------------Suzie Test---------------------------------------
 #cause((suzie == 1), (broken == true))
 a = :(state.suzieHistory[step] == 1)
 b = :(state.brokenHistory[step] == true)
-@test_ac(true, aexpr2, a, b)
+@test(test_ac(aexpr2, a, b))
 
 # -------------------------------Billy Test---------------------------------------
 # cause((billy == 0), (broken == true))
 a = :(state.billyHistory[step] == 0)
 b = :(state.brokenHistory[step] == true)
-@test_ac(false, aexpr2, a, b)
+@test(!test_ac(aexpr2, a, b))
 
 # # -----------------------------Advanced Suzie Test No Rock-----------------------
 a = :(state.suzieHistory[step].timeTillThrow == 3)
 b = :(state.suzieThrewHistory[step] == true)
-@test_ac(true, aexpr3, a, b)
+@test(test_ac(aexpr3, a, b))
 
 a = :(state.suzieHistory[step].timeTillThrow == 2)
 b = :(state.suzieThrewHistory[step] == true)
-@test_ac(true, aexpr3, a, b)
+@test(test_ac(aexpr3, a, b))
 
 a = :(state.suzieHistory[2].timeTillThrow == 3)
 b = :(state.suzieThrewHistory[step] == true)
-@test_ac(false, aexpr3, a, b)
+@test(!test_ac(aexpr3, a, b))
 
 # -----------------------------Advanced Billy Test No Rock-----------------------
 a = :(state.suzieHistory[step].timeTillThrow == 4)
 b = :(state.suzieThrewHistory[step] == true)
-@test_ac(false, aexpr3, a, b)
+@test(!test_ac(aexpr3, a, b))
 
 a = :(state.suzieHistory[0].timeTillThrow == 4)
 b = :(state.suzieThrewHistory[step] == true)
-@test_ac(false, aexpr3, a, b)
+@test(!test_ac(aexpr3, a, b))
 
 # -------------------------------Advanced Rock Test---------------------------------------
 
@@ -297,7 +234,7 @@ chain = au"""(program
 """
 a = :(state.ball_bHistory[step].direction == 270)
 b = :(intersects(state.ball_aHistory[step], state.goalHistory[step]))
-@test_ac(true, chain, a, b)
+@test(test_ac(chain, a, b))
 
 chain3 = au"""(program
   (= GRID_SIZE 16)
@@ -326,13 +263,11 @@ chain3 = au"""(program
 
 a = :(state.ball_bHistory[step].direction == 270)
 b = :(intersects(state.ball_aHistory[step], state.goalHistory[step]))
-@test_ac(true, chain3, a, b)
+@test(test_ac(chain3, a, b))
 
 a = :(state.ball_cHistory[step].direction == 270)
 b = :(intersects(state.ball_aHistory[step], state.goalHistory[step]))
-@test_ac(true, chain3, a, b)
-
-println(testFunc(2, 3))
+@test(test_ac(chain3, a, b))
 
 barrier = au"""(program
   (= GRID_SIZE 16)
@@ -358,7 +293,7 @@ barrier = au"""(program
 
 a = :(state.ball_bHistory[step].direction == 225)
 b = :(intersects(state.ball_aHistory[step], state.goalHistory[step]))
-@test_ac(true, barrier, a, b)
+@test(test_ac(barrier, a, b))
 
 #counterfactual close actual hit
 ccah = au"""(program
@@ -384,7 +319,7 @@ ccah = au"""(program
 
 a = :(state.ball_bHistory[step].direction == 315)
 b = :(intersects(state.ball_aHistory[step], state.goalHistory[step]))
-@test_ac(true, ccah, a, b)
+@test(test_ac(ccah, a, b))
 
 chah = au"""(program
   (= GRID_SIZE 16)
@@ -409,7 +344,7 @@ chah = au"""(program
 
 a = :(state.ball_bHistory[step].direction == 270)
 b = :(intersects(state.ball_aHistory[step], state.goalHistory[step]))
-@test_ac(true, chah, a, b)
+@test(test_ac(chah, a, b))
 
 #counterfactual miss actual hit
 cmah = au"""(program
@@ -435,7 +370,7 @@ cmah = au"""(program
 
 a = :(state.ball_bHistory[step].direction == 315)
 b = :(intersects(state.ball_aHistory[step], state.goalHistory[step]))
-@test_ac(true, cmah, a, b)
+@test(test_ac(cmah, a, b))
 
 #counterfactual hit actual miss
 cham_nored = au"""(program
@@ -462,11 +397,11 @@ cham_nored = au"""(program
 
 a = :(state.ball_aHistory[step].direction == 270)
 b = :(intersects(state.ball_aHistory[step], state.goalHistory[step]))
-@test_ac(true, cham_nored, a, b)
+@test(test_ac(cham_nored, a, b))
 
 a = :(state.ball_aHistory[step].direction == 270)
 b = :(intersects(state.ball_aHistory[15], state.goalHistory[15]))
-@test_ac(true, cham_nored, a, b)
+@test(test_ac(cham_nored, a, b))
 
 
 

@@ -23,6 +23,12 @@ include("autumnstdlib.jl")
 include("compileutils.jl")
 @reexport using .CompileUtils
 
+include("causalbuiltin.jl")
+@reexport using .CausalBuiltIn
+
+include("causalutils.jl")
+@reexport using .CausalUtils
+
 include("compile.jl")
 @reexport using .Compile
 
@@ -31,12 +37,6 @@ include("abstractinterpretation.jl")
 
 include("transform.jl")
 @reexport using .Transform
-
-include("causalbuiltin.jl")
-@reexport using .CausalBuiltIn
-
-include("causalutils.jl")
-@reexport using .CausalUtils
 
 include("causal.jl")
 @reexport using .Causal

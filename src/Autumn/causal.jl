@@ -40,7 +40,6 @@ end
 eval(builtin)
 
 function test_ac(aexpr_,  cause_a_, cause_b_)
-
     global step = 0
     get_a_causes = getcausal(aexpr_)
 
@@ -49,8 +48,8 @@ function test_ac(aexpr_,  cause_a_, cause_b_)
     global state = Base.invokelatest(aumod.init, nothing, nothing, nothing, nothing, nothing, MersenneTwister(0))
     global causes = [cause_a_]
     cause_b = cause_b_
-
-    while !Base.invokelatest(tryb, cause_b) && length(causes) > 0
+    truecount = 0
+    while truecount < 2 && length(causes) > 0  && getstep(cause_b)>=step
       new_causes = []
       for cause_a in causes
         try
@@ -66,11 +65,21 @@ function test_ac(aexpr_,  cause_a_, cause_b_)
           # println(e)
           append!(new_causes, [cause_a])
         end
+
       end
       global causes = new_causes
       global state = Base.invokelatest(aumod.next, state, nothing, nothing, nothing, nothing, nothing)
       global step = step + 1
+      if Base.invokelatest(tryb, cause_b) || truecount > 0
+        for cause in new_causes
+          if acaused(cause, cause_b)
+            return true
+          end
+        end
+        truecount += 1
+      end
     end
+
     for cause_a in causes
       if acaused(cause_a, cause_b)
         return true

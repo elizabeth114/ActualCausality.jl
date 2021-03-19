@@ -73,16 +73,18 @@ function causalon(data)
   for on_clause in data["on"]
     mapped1 = convertprev(copy(on_clause[1]), data)
     mapped2 = copy(on_clause[2])
-
     for index in 1:length(mapped2.args)
       mapped2.args[index] = convertprev(mapped2.args[index], data)
     end
-
+    varname = ""
+    eval_clause2 = Meta.quot(mapped2)
     if mapped2.head == :(=)
+      varname = Meta.quot(mapped2.args[1])
       mapped2 = Expr(:call, :(==), mapped2.args...)
     end
     quote_clause = Meta.quot(mapped1)
     quote_clause2 = Meta.quot(mapped2)
+
     ifstatement = quote
       if (eval($quote_clause))
         varstore = eval(a.args[2])
@@ -107,12 +109,55 @@ function causalon(data)
         else
           push!(reduce(a.args[2]), step =>varstore)
         end
+
+        varstore = eval(a.args[3])
+        bigstore = eval(($eval_clause2).args[1])
+        push!(reduce(($eval_clause2).args[1]), step => eval(decrement(($eval_clause2).args[1])))
+        posssvals = possiblevalues(a.args[2], eval(a.args[3]))
+        store = eval(($eval_clause2).args[1])
+        evaled = eval($eval_clause2)
+        push!(reduce(($eval_clause2).args[1]), step => store)
+        fields = fieldnames(typeof(eval(evaled)))
+        for field in fields
+          if field == :render
+            continue
+          end
+          storefield = getfield(store, field)
+
+          prevval = getfield(evaled, field)
+          for val in posssvals
+            if isfield(a.args[2])
+              eval(Expr(:(=), a.args[2], val))
+            else
+              push!(reduce(a.args[2]), step =>val)
+            end
+            if getfield(eval($eval_clause2), field) != prevval
+              if isfield(a.args[2])
+                eval(Expr(:(=), a.args[2], varstore))
+              else
+                push!(reduce(a.args[2]), step =>varstore)
+              end
+              push!(reduce(($eval_clause2).args[1]), step => store)
+              push!(causes, Expr(:call, :(==), Meta.parse(join([totime($varname), field], ".")), prevval))
+              break
+            end
+            push!(reduce(($eval_clause2).args[1]), step => store)
+
+            if isfield(a.args[2])
+               eval(Expr(:(=), a.args[2], varstore))
+            else
+              push!(reduce(a.args[2]), step =>varstore)
+            end
+          end
+          push!(reduce(($eval_clause2).args[1]), step => bigstore)
+        end
       end
     end
     push!(on_clauses, ifstatement)
   end
   on_clauses
 end
+
 
 function causalin(data)
   in_clauses = []
@@ -122,7 +167,7 @@ function causalin(data)
     next_value = clause.args[2].args[2]
     new_expr = []
     if next_value.args[1] == :prev
-      continue
+      new_expr = convertprev(next_value.args[2], data)
     else
       new_expr = convertprev(next_value, data)
     end
@@ -130,34 +175,41 @@ function causalin(data)
     ifstatement = quote
       varstore = a.args[3]
       if length(fieldnames(typeof(eval($mapped)))) == 0
-        push!(causes, Expr(:call, :(==), (increment(a.args[2])), $new_expr))
+        if (reducenoeval(a.args[2]) == reducenoeval($mapped))
+          push!(causes, Expr(:call, :(==), (increment(a.args[2])), $new_expr))
+        end
       end
-        for field in fieldnames(typeof(eval($mapped)))
-          if field == :render
-            continue
+      for field in fieldnames(typeof(eval($mapped)))
+        if field == :render
+          continue
+        end
+        prevval = getfield(eval($new_expr), field)
+        for val in possiblevalues(a.args[2], eval(a.args[3]))
+          if isfield(a.args[2])
+            eval(Expr(:(=), a.args[2], val))
+          else
+            push!(reduce(a.args[2]), step =>val)
           end
-          prevval = getfield(eval($new_expr), field)
-          for val in possiblevalues(a.args[2], eval(a.args[3]))
+          if prevval != getfield(eval($new_expr), field)
             if isfield(a.args[2])
-              eval(Expr(:(=), a.args[2], val))
+              eval(Expr(:(=), a.args[2], varstore))
             else
-              push!(reduce(a.args[2]), step =>val)
+              push!(reduce(a.args[2]), step =>varstore)
             end
-            if prevval != getfield(eval($new_expr), field)
-              if isfield(a.args[2])
-                eval(Expr(:(=), a.args[2], varstore))
-              else
-                push!(reduce(a.args[2]), step =>varstore)
-              end
-              push!(causes, Expr(:call, :(==), Meta.parse(join([increment($mapped), field], ".")), prevval))
-              if isfield(a.args[2])
-                eval(Expr(:(=), a.args[2], varstore))
-              else
-                push!(reduce(a.args[2]), step =>varstore)
-              end
-              break
+            push!(causes, Expr(:call, :(==), Meta.parse(join([increment($mapped), field], ".")), prevval))
+            if isfield(a.args[2])
+              eval(Expr(:(=), a.args[2], varstore))
+            else
+              push!(reduce(a.args[2]), step =>varstore)
             end
+            break
           end
+          if isfield(a.args[2])
+            eval(Expr(:(=), a.args[2], varstore))
+          else
+            push!(reduce(a.args[2]), step =>varstore)
+          end
+        end
         if isfield(a.args[2])
           eval(Expr(:(=), a.args[2], varstore))
         else

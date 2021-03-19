@@ -144,7 +144,7 @@ b = :(state.brokenHistory[5] == true)
 a = :(state.suzieHistory[2] == 1)
 b = :(state.brokenHistory[step] == true)
 @test(!test_ac(aexpr, a, b))
-#
+
 # # -------------------------------Billy Test---------------------------------------
 # cause((billy == 0), (broken == true))
 a = :(state.billyHistory[step] == 0)

@@ -508,6 +508,11 @@ function tostate(var)
   return Meta.parse("state.$(var)History[step]")
 end
 
+function totime(var)
+  raw = reducenoeval(var)
+  return Meta.parse("$(raw)[$(state.time)]")
+end
+
 function tostate(var, field)
   return Meta.parse("state.$(var)History[step].$field")
 end
@@ -570,16 +575,28 @@ function increment(var::Expr)
   return Meta.parse(join([split_1[1], "[", string(index + 1), "]", split_2[2]]))
 end
 
+function decrement(var::Expr)
+  split_1 = split(string(var), "[")
+  split_2 = split(split_1[2], "]")
+  index = eval(Meta.parse(split_2[1]))
+  if index == :step
+    return eval(Meta.parse(join([split_1[1], "[step]", split_2[2]])))
+  elseif index == 0
+    return eval(Meta.parse(join([split_1[1], "[0]", split_2[2]])))
+  end
+  return Meta.parse(join([split_1[1], "[", string(index - 1), "]", split_2[2]]))
+end
+
 function possvals(val::Bool)
   [true, false]
 end
 
 function possvals(val::Union{BigInt, Int64})
-  [-2^9:1:(2^9);]
+  [-2^4:1:(2^4);]
 end
 
 function possvals(val::Expr)
-  println("its an expr")
+  possvals(eval(val))
 end
 
 function possvalspos(val)
@@ -599,7 +616,7 @@ function possiblevalues(var::Expr, val)
   if :x in (fieldnames(typeof(val))) && :y in (fieldnames(typeof(val)))
     return possvalspos(val)
   end
-  possvals(eval(val))
+  return possvals(val)
 end
 
 function wallintersect(ball)
@@ -691,7 +708,7 @@ function equalPos(val1, val2)
 end
 
 function acaused(cause_a::Expr, cause_b::Expr)
-  if eval(cause_a) || equalPos(cause_a.args[2], cause_a.args[3])
+  if eval(cause_b) && (eval(cause_a) || equalPos(cause_a.args[2], cause_a.args[3]))
     varstore = eval(cause_a.args[2])
     short = eval(reduce(cause_a.args[2]))
     index = getstep(cause_a.args[2])

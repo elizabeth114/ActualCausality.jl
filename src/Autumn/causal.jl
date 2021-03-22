@@ -51,6 +51,7 @@ function test_ac(aexpr_,  cause_a_, cause_b_, restrictedvalues)
     while truecount < 2 && length(causes) > 0  && getstep(cause_b)>=step
       new_causes = []
       for cause_a in causes
+        println(cause_a)
         try
           if eval(cause_a)
             result = Base.invokelatest(a_causes, cause_a, restrictedvalues)
@@ -61,7 +62,7 @@ function test_ac(aexpr_,  cause_a_, cause_b_, restrictedvalues)
             end
           end
         catch e
-          # println(e)
+          println(e)
           append!(new_causes, [cause_a])
         end
 

@@ -15,13 +15,17 @@ function tostate(var, field)
   return Meta.parse("state.$(var)History[step].$field")
 end
 
+function tostateprev(var)
+  return Meta.parse("state.$(var)History[step-1]")
+end
+
 function tostateshort(var)
   return Meta.parse("state.$(var)History")
 end
 
 function convertprev(next_value, data)
   if next_value in keys(data["types"])
-    return tostate(next_value)
+    return tostateprev(next_value)
   end
   return next_value
 end
@@ -123,7 +127,6 @@ function causalon(data)
             continue
           end
           storefield = getfield(store, field)
-
           prevval = getfield(evaled, field)
           for val in posssvals
             if isfield(a.args[2])
@@ -180,20 +183,19 @@ function causalin(data)
         end
       end
       for field in fieldnames(typeof(eval($mapped)))
+
         if field == :render
           continue
         end
         prevval = getfield(eval($new_expr), field)
-        # println($new_expr)
-        # println("prev")
-        # println(prevval)
         for val in possiblevalues(a.args[2], eval(a.args[3]), restrictedvalues)
           if isfield(a.args[2])
             eval(Expr(:(=), a.args[2], val))
           else
             push!(reduce(a.args[2]), step =>val)
           end
-          if prevval != getfield(eval($new_expr), field)
+          newval = getfield(eval($new_expr), field)
+          if prevval != newval
             if isfield(a.args[2])
               eval(Expr(:(=), a.args[2], varstore))
             else
@@ -218,7 +220,6 @@ function causalin(data)
         else
           push!(reduce(a.args[2]), step =>varstore)
         end
-      # println(causes)
       end
     end
     push!(in_clauses, ifstatement)

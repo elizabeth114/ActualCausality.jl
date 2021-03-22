@@ -580,9 +580,10 @@ function increment(var::Expr)
   split_2 = split(split_1[2], "]")
   index = eval(Meta.parse(split_2[1]))
   if index == :step
+    println("step")
     return eval(Meta.parse(join([split_1[1], "[step]", split_2[2]])))
   end
-  return Meta.parse(join([split_1[1], "[", string(index + 1), "]", split_2[2]]))
+  return Meta.parse(join([split_1[1], "[", string(state.time), "]", split_2[2]]))
 end
 
 function decrement(var::Expr)

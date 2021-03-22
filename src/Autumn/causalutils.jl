@@ -88,7 +88,7 @@ function causalon(data)
     ifstatement = quote
       if (eval($quote_clause))
         varstore = eval(a.args[2])
-        for val in possiblevalues(a.args[2], eval(a.args[3]))
+        for val in possiblevalues(a.args[2], eval(a.args[3]), restrictedvalues)
           if isfield(a.args[2])
             eval(Expr(:(=), a.args[2], val))
           else
@@ -113,7 +113,7 @@ function causalon(data)
         varstore = eval(a.args[3])
         bigstore = eval(($eval_clause2).args[1])
         push!(reduce(($eval_clause2).args[1]), step => eval(decrement(($eval_clause2).args[1])))
-        posssvals = possiblevalues(a.args[2], eval(a.args[3]))
+        posssvals = possiblevalues(a.args[2], eval(a.args[3]), restrictedvalues)
         store = eval(($eval_clause2).args[1])
         evaled = eval($eval_clause2)
         push!(reduce(($eval_clause2).args[1]), step => store)
@@ -184,7 +184,10 @@ function causalin(data)
           continue
         end
         prevval = getfield(eval($new_expr), field)
-        for val in possiblevalues(a.args[2], eval(a.args[3]))
+        # println($new_expr)
+        # println("prev")
+        # println(prevval)
+        for val in possiblevalues(a.args[2], eval(a.args[3]), restrictedvalues)
           if isfield(a.args[2])
             eval(Expr(:(=), a.args[2], val))
           else
@@ -215,6 +218,7 @@ function causalin(data)
         else
           push!(reduce(a.args[2]), step =>varstore)
         end
+      # println(causes)
       end
     end
     push!(in_clauses, ifstatement)
@@ -226,7 +230,7 @@ function compilecausal(data)
   on_clauses = causalon(data)
   in_clauses = causalin(data)
   expr = quote
-    function a_causes(a)
+    function a_causes(a, restrictedvalues)
       causes = []
       if a.args[1] == :(==)
         $(on_clauses...)

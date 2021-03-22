@@ -540,6 +540,16 @@ function reducenoeval(var)
   Meta.parse(split_[1])
 end
 
+function reducetostep(var)
+  strvar = replace(string(var), "(" => "")
+  strvar = replace(strvar, ")" => "")
+  split_ = split(strvar, "[")
+  split1 = split_[1]
+  split2 = split(split_[2], "]")[2]
+  Meta.parse("$(split1)[step]$(split2)")
+end
+
+
 function pushbyfield(var, val)
   if isfield(a.args[2])
     eval(Expr(:(=), a.args[2], val))
@@ -609,10 +619,10 @@ function possvalspos(val)
   vals
 end
 
-function possiblevalues(var::Expr, val)
-  # if reducenoeval(var) in keys(restrictedvalues)
-  #   return restrictedvalues[reducenoeval(var)]
-  # end
+function possiblevalues(var::Expr, val, restrictedvalues)
+  if reducetostep(var) in keys(restrictedvalues)
+    return eval(restrictedvalues[reducetostep(var)])
+  end
   if :x in (fieldnames(typeof(val))) && :y in (fieldnames(typeof(val)))
     return possvalspos(val)
   end
@@ -707,12 +717,12 @@ function equalPos(val1, val2)
   false
 end
 
-function acaused(cause_a::Expr, cause_b::Expr)
+function acaused(cause_a::Expr, cause_b::Expr, restrictedvalues)
   if eval(cause_b) && (eval(cause_a) || equalPos(cause_a.args[2], cause_a.args[3]))
     varstore = eval(cause_a.args[2])
     short = eval(reduce(cause_a.args[2]))
     index = getstep(cause_a.args[2])
-    for val in possiblevalues(cause_a.args[2], cause_a.args[3])
+    for val in possiblevalues(cause_a.args[2], cause_a.args[3], restrictedvalues)
       if isfield(cause_a.args[2])
         eval(Expr(:(=), cause_a.args[2], val))
       else

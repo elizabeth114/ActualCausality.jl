@@ -34,12 +34,11 @@ function getcausal(aexpr::AExpr)
   end
 end
 
-#If i leave it as a macro it complains aexpr not defined
-#If i make it a function it complains about the world age
-#If i make it return an expression it complains about aexpr not defined
 eval(builtin)
 
-function test_ac(aexpr_,  cause_a_, cause_b_)
+test_ac(aexpr_, cause_a_, cause_b_) = test_ac(aexpr_, cause_a_, cause_b_, Dict())
+
+function test_ac(aexpr_,  cause_a_, cause_b_, restrictedvalues)
     global step = 0
     get_a_causes = getcausal(aexpr_)
 
@@ -54,10 +53,10 @@ function test_ac(aexpr_,  cause_a_, cause_b_)
       for cause_a in causes
         try
           if eval(cause_a)
-            result = Base.invokelatest(a_causes, cause_a)
+            result = Base.invokelatest(a_causes, cause_a, restrictedvalues)
             append!(new_causes, result)
           else
-            if getstep(cause_a) > step - 1
+            if getstep(cause_a) >= step
               append!(new_causes, [cause_a])
             end
           end
@@ -72,16 +71,17 @@ function test_ac(aexpr_,  cause_a_, cause_b_)
       global step = step + 1
       if Base.invokelatest(tryb, cause_b) || truecount > 0
         for cause in new_causes
-          if acaused(cause, cause_b)
+          if acaused(cause, cause_b, restrictedvalues)
             return true
           end
         end
         truecount += 1
       end
+      println(causes)
     end
 
     for cause_a in causes
-      if acaused(cause_a, cause_b)
+      if acaused(cause_a, cause_b, restrictedvalues)
         return true
       end
     end

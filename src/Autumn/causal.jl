@@ -16,7 +16,8 @@ function getcausal(aexpr::AExpr)
                ("types" => Dict{Symbol, Any}([:click => :Click, :left => :KeyPress, :right => :KeyPress, :up => :KeyPress, :down => :KeyPress, :GRID_SIZE => :Int, :background => :String])), # map of global variable names (symbols) to types
                ("on" => []),
                ("objects" => []),
-               ("functions" => [])])
+               ("functions" => []),
+               ("idmap" => Dict())])
 
   if (aexpr.head == :program)
     # handle AExpression lines
@@ -30,7 +31,7 @@ function getcausal(aexpr::AExpr)
     initnextfunctions = compileinitnext(historydata)
     prevfunctions = compileprevfuncs(historydata)
     causalfunctions = compilecausal(historydata)
-
+    return causalfunctions
   end
 end
 
@@ -48,13 +49,17 @@ function test_ac(aexpr_,  cause_a_, cause_b_, restrictedvalues)
     global causes = [cause_a_]
     cause_b = cause_b_
     truecount = 0
+    newrestricted = Dict()
+    for key in keys(restrictedvalues)
+      newkey = (eval(key[1]).id, key[2])
+      push!(newrestricted, newkey => restrictedvalues[key])
+    end
     while truecount < 2 && length(causes) > 0  && getstep(cause_b)>=step
       new_causes = []
       for cause_a in causes
-        println(cause_a)
         try
-          if eval(cause_a)
-            result = Base.invokelatest(a_causes, cause_a, restrictedvalues)
+          if eval(cause_a) || Base.invokelatest(equalPos, cause_a.args[2], cause_a.args[3])
+            result = Base.invokelatest(a_causes, cause_a, newrestricted)
             append!(new_causes, result)
           else
             if getstep(cause_a) >= step
@@ -65,14 +70,13 @@ function test_ac(aexpr_,  cause_a_, cause_b_, restrictedvalues)
           println(e)
           append!(new_causes, [cause_a])
         end
-
       end
-      global causes = new_causes
+      global causes = unique(new_causes)
       global state = Base.invokelatest(aumod.next, state, nothing, nothing, nothing, nothing, nothing)
       global step = step + 1
       if Base.invokelatest(tryb, cause_b) || truecount > 0
         for cause in new_causes
-          if acaused(cause, cause_b, restrictedvalues)
+          if acaused(cause, cause_b, newrestricted)
             return true
           end
         end
@@ -80,9 +84,8 @@ function test_ac(aexpr_,  cause_a_, cause_b_, restrictedvalues)
       end
       println(causes)
     end
-
     for cause_a in causes
-      if acaused(cause_a, cause_b, restrictedvalues)
+      if acaused(cause_a, cause_b, newrestricted)
         return true
       end
     end

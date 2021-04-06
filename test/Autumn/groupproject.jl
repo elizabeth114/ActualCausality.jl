@@ -30,9 +30,9 @@ project = au"""(program
   )"""
 
 
-  # a = :(state.student1History[0].intelligence == 3)
-  # b = :(state.groupHistory[5].grade == 27)
-  # @test(test_ac(project, a, b))
+  a = :(state.student1History[0].intelligence == 3)
+  b = :(state.groupHistory[5].grade == 27)
+  @test(test_ac(project, a, b))
 
   project = au"""(program
     (= GRID_SIZE 16)
@@ -79,21 +79,20 @@ project = au"""(program
     b = :(state.groupHistory[10].grade >= 55)
     @test(test_ac(project, a, b))
 
+    #without restrictions also true
     a = :(state.student1History[0].effort == 3)
     b = :(state.groupHistory[10].grade >= 20)
     @test(!test_ac(project, a, b))
 
-    # #without restrictions is true
+    #without restrictions is true
     a = :(state.student1History[7].effort == 4)
     b = :(state.groupHistory[10].grade >= 0)
-    @test(test_ac(project, a, b, Dict([(:(state.student1History[step].effort), [0, 1, 2, 3, 4, 5])])))
+    @test(!test_ac(project, a, b))
 
-    restricted = Dict([(:(state.student1History[step].effort), [0, 1, 2, 3, 4, 5]),
-                        (:(state.groupHistory[step].grade), :([state.groupHistory[step-1].grade:1:(100);]))
-                        ])
+    restricted = Dict([((:(state.student1History[0]), :effort), [0, 1, 2, 3, 4, 5])])
 
     #with restrictions is false
-    a = :(state.student1History[7].effort == 4)
+    a = :(state.student1History[0].effort == 3)
     b = :(state.groupHistory[10].grade >= 0)
     @test(!test_ac(project, a, b, restricted))
 

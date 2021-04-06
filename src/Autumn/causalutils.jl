@@ -15,8 +15,14 @@ function tostate(var, field)
   return Meta.parse("state.$(var)History[step].$field")
 end
 
+function getstep(var)
+  split_1 = split(string(var), "[")
+  split_2 = split(split_1[2], "]")
+  index = eval(Meta.parse(split_2[1]))
+end
+
 function tostateprev(var)
-  return Meta.parse("state.$(var)History[step-1]")
+  return Meta.parse("state.$(var)History[max(0, step-1)]")
 end
 
 function tostateshort(var)
@@ -96,63 +102,80 @@ function causalon(data)
           if isfield(a.args[2])
             eval(Expr(:(=), a.args[2], val))
           else
-            push!(reduce(a.args[2]), step =>val)
+            push!(reduce(a.args[2]), getstep(a.args[2]) =>val)
           end
           if !(eval($quote_clause))
             if isfield(a.args[2])
               eval(Expr(:(=), a.args[2], varstore))
             else
-              push!(reduce(a.args[2]), step =>varstore)
+              push!(reduce(a.args[2]), getstep(a.args[2]) =>varstore)
             end
             push!(causes, $(quote_clause2))
             break
+          end
+          if isfield(a.args[2])
+            eval(Expr(:(=), a.args[2], varstore))
+          else
+            push!(reduce(a.args[2]), getstep(a.args[2]) =>varstore)
           end
         end
         if isfield(a.args[2])
           eval(Expr(:(=), a.args[2], varstore))
         else
-          push!(reduce(a.args[2]), step =>varstore)
+          push!(reduce(a.args[2]), getstep(a.args[2]) =>varstore)
         end
 
         varstore = eval(a.args[3])
-        bigstore = eval(($eval_clause2).args[1])
-        push!(reduce(($eval_clause2).args[1]), step => eval(decrement(($eval_clause2).args[1])))
+
+        store = eval(increment(($eval_clause2).args[1]))
+
         posssvals = possiblevalues(a.args[2], eval(a.args[3]), restrictedvalues)
-        store = eval(($eval_clause2).args[1])
+        # store = eval(($eval_clause2).args[1])
         evaled = eval($eval_clause2)
-        push!(reduce(($eval_clause2).args[1]), step => store)
+        push!(reduce(($eval_clause2).args[1]), getstep(a.args[2]) => store)
         fields = fieldnames(typeof(eval(evaled)))
         for field in fields
           if field == :render
             continue
           end
+
           storefield = getfield(store, field)
           prevval = getfield(evaled, field)
+          key = ((eval($eval_clause2).id, field))
+          if !(key in keys(newDict))
+            push!(newDict, key => [])
+          end
           for val in posssvals
             if isfield(a.args[2])
               eval(Expr(:(=), a.args[2], val))
             else
-              push!(reduce(a.args[2]), step =>val)
+              push!(reduce(a.args[2]), getstep(a.args[2]) =>val)
             end
-            if getfield(eval($eval_clause2), field) != prevval
+            newval = getfield(eval($eval_clause2), field)
+            if newval != prevval
               if isfield(a.args[2])
                 eval(Expr(:(=), a.args[2], varstore))
               else
-                push!(reduce(a.args[2]), step =>varstore)
+                push!(reduce(a.args[2]), getstep(a.args[2]) =>varstore)
               end
-              push!(reduce(($eval_clause2).args[1]), step => store)
+              push!(reduce(($eval_clause2).args[1]), getstep(a.args[2]) => store)
               push!(causes, Expr(:call, :(==), Meta.parse(join([totime($varname), field], ".")), prevval))
-              break
+              # break
             end
-            push!(reduce(($eval_clause2).args[1]), step => store)
+            if !(newval in values(newDict[key]))
+              push!(newDict[key], newval)
+            end
+            push!(reduce(($eval_clause2).args[1]), getstep(a.args[2]) => store)
+
+
 
             if isfield(a.args[2])
                eval(Expr(:(=), a.args[2], varstore))
             else
-              push!(reduce(a.args[2]), step =>varstore)
+              push!(reduce(a.args[2]), getstep(a.args[2]) =>varstore)
             end
           end
-          push!(reduce(($eval_clause2).args[1]), step => bigstore)
+          push!(reduce(($eval_clause2).args[1]), step => store)
         end
       end
     end
@@ -177,48 +200,58 @@ function causalin(data)
     shortmap = tostateshort(clause.args[1])
     ifstatement = quote
       varstore = a.args[3]
-      if length(fieldnames(typeof(eval($mapped)))) == 0
+      if length(fieldnames(typeof(eval($mapped)))) == 0 || getstep(a.args[2]) == 0
         if (reducenoeval(a.args[2]) == reducenoeval($mapped))
-          push!(causes, Expr(:call, :(==), (increment(a.args[2])), $new_expr))
+          if step == 0 && getstep(a.args[2]) == 0
+            push!(causes, Expr(:call, :(==), (increment(a.args[2])), a.args[3]))
+          else
+            push!(causes, Expr(:call, :(==), (increment(a.args[2])), $new_expr))
+          end
         end
       end
       for field in fieldnames(typeof(eval($mapped)))
-
         if field == :render
           continue
         end
         prevval = getfield(eval($new_expr), field)
+        key = ((eval($new_expr).id, field))
+        if !(key in keys(newDict))
+          push!(newDict, key => [])
+        end
         for val in possiblevalues(a.args[2], eval(a.args[3]), restrictedvalues)
           if isfield(a.args[2])
             eval(Expr(:(=), a.args[2], val))
           else
-            push!(reduce(a.args[2]), step =>val)
+            push!(reduce(a.args[2]), getstep(a.args[2]) =>val)
           end
           newval = getfield(eval($new_expr), field)
           if prevval != newval
             if isfield(a.args[2])
               eval(Expr(:(=), a.args[2], varstore))
             else
-              push!(reduce(a.args[2]), step =>varstore)
+              push!(reduce(a.args[2]), getstep(a.args[2]) =>varstore)
             end
             push!(causes, Expr(:call, :(==), Meta.parse(join([increment($mapped), field], ".")), prevval))
             if isfield(a.args[2])
               eval(Expr(:(=), a.args[2], varstore))
             else
-              push!(reduce(a.args[2]), step =>varstore)
+              push!(reduce(a.args[2]), getstep(a.args[2]) =>varstore)
             end
-            break
+            # break
+          end
+          if !(newval in values(newDict[key]))
+            push!(newDict[key], newval)
           end
           if isfield(a.args[2])
             eval(Expr(:(=), a.args[2], varstore))
           else
-            push!(reduce(a.args[2]), step =>varstore)
+            push!(reduce(a.args[2]), getstep(a.args[2]) =>varstore)
           end
         end
         if isfield(a.args[2])
           eval(Expr(:(=), a.args[2], varstore))
         else
-          push!(reduce(a.args[2]), step =>varstore)
+          push!(reduce(a.args[2]), getstep(a.args[2]) =>varstore)
         end
       end
     end
@@ -232,10 +265,14 @@ function compilecausal(data)
   in_clauses = causalin(data)
   expr = quote
     function a_causes(a, restrictedvalues)
+      newDict = Dict()
       causes = []
       if a.args[1] == :(==)
-        $(on_clauses...)
         $(in_clauses...)
+        $(on_clauses...)
+      end
+      for pair in newDict
+        push!(restrictedvalues, pair)
       end
       if length(causes) == 0
         return [a]

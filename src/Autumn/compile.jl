@@ -17,7 +17,8 @@ function compiletojulia(aexpr::AExpr)::Expr
                ("types" => Dict{Symbol, Any}([:click => :Click, :left => :KeyPress, :right => :KeyPress, :up => :KeyPress, :down => :KeyPress, :GRID_SIZE => :Int, :background => :String])), # map of global variable names (symbols) to types
                ("on" => []),
                ("objects" => []),
-               ("functions" => [])])
+               ("functions" => []), 
+               ("idmap" => Dict())])
   if (aexpr.head == :program)
     # handle AExpression lines
     lines = filter(x -> x !== :(), map(arg -> compile(arg, historydata, aexpr), aexpr.args))

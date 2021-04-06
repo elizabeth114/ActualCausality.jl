@@ -510,7 +510,7 @@ end
 
 function totime(var)
   raw = reducenoeval(var)
-  return Meta.parse("$(raw)[$(state.time)]")
+  return Meta.parse("$(raw)[$(state.time)+1]")
 end
 
 function tostate(var, field)
@@ -580,10 +580,19 @@ function increment(var::Expr)
   split_2 = split(split_1[2], "]")
   index = eval(Meta.parse(split_2[1]))
   if index == :step
-    println("step")
     return eval(Meta.parse(join([split_1[1], "[step]", split_2[2]])))
   end
   return Meta.parse(join([split_1[1], "[", string(state.time), "]", split_2[2]]))
+end
+
+function incrementfr(var::Expr)
+  split_1 = split(string(var), "[")
+  split_2 = split(split_1[2], "]")
+  index = eval(Meta.parse(split_2[1]))
+  if index == :step
+    return eval(Meta.parse(join([split_1[1], "[step]", split_2[2]])))
+  end
+  return Meta.parse(join([split_1[1], "[", string(index + 1), "]", split_2[2]]))
 end
 
 function decrement(var::Expr)
@@ -621,9 +630,16 @@ function possvalspos(val)
 end
 
 function possiblevalues(var::Expr, val, restrictedvalues)
-  if reducetostep(var) in keys(restrictedvalues)
-    return eval(restrictedvalues[reducetostep(var)])
+  try
+    id = eval(reduce(var))[0].id
+    field = Meta.parse(getfieldnames(var)[1])
+    key = (id, field)
+    if key in keys(restrictedvalues)
+      return eval(restrictedvalues[key])
+    end
+  catch e
   end
+  
   if :x in (fieldnames(typeof(val))) && :y in (fieldnames(typeof(val)))
     return possvalspos(val)
   end
@@ -719,21 +735,26 @@ function equalPos(val1, val2)
 end
 
 function acaused(cause_a::Expr, cause_b::Expr, restrictedvalues)
-  if eval(cause_b) && (eval(cause_a) || equalPos(cause_a.args[2], cause_a.args[3]))
+  if (eval(cause_b) && eval(cause_a)) || equalPos(cause_a.args[2], cause_a.args[3])
     varstore = eval(cause_a.args[2])
     short = eval(reduce(cause_a.args[2]))
     index = getstep(cause_a.args[2])
     for val in possiblevalues(cause_a.args[2], cause_a.args[3], restrictedvalues)
+      # println("start of val println")
+      # println(val)
+      # println(cause_a.args[2])
+      # println(cause_b)
+      # println(eval(cause_b))
       if isfield(cause_a.args[2])
         eval(Expr(:(=), cause_a.args[2], val))
       else
-        push!(reduce(cause_a.args[2]), step =>val)
+        push!(reduce(cause_a.args[2]), getstep(cause_a.args[2]) =>val)
       end
       if !(eval(cause_b))
         if isfield(cause_a.args[2])
           eval(Expr(:(=), cause_a.args[2], varstore))
         else
-          push!(reduce(cause_a.args[2]), step =>varstore)
+          push!(reduce(cause_a.args[2]), getstep(cause_a.args[2]) =>varstore)
         end
         return true
         break
@@ -742,7 +763,7 @@ function acaused(cause_a::Expr, cause_b::Expr, restrictedvalues)
     if isfield(cause_a.args[2])
       eval(Expr(:(=), cause_a.args[2], varstore))
     else
-      push!(reduce(cause_a.args[2]), step =>varstore)
+      push!(reduce(cause_a.args[2]), getstep(cause_a.args[2]) =>varstore)
     end
   end
   false
